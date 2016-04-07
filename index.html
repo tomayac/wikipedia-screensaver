@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wikipedia Screensaver</title>
+    <style>
+      html {
+        box-sizing: border-box;
+        font-family: sans-serif;
+      }
+      *, *:before, *:after {
+        box-sizing: inherit;
+      }
+      body {
+        margin: 0;
+        font-size: 1em;
+      }
+      @media (min-width: 600px) {
+        body {
+          font-size: 2em;
+        }
+      }
+      #tiles-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 100vw;
+        height: 100vh;
+      }
+      .tile {
+        width: 50%;
+        height: 50%;
+        padding: 1em;
+        color: white;
+        text-shadow: 0 0 3px #000, -1px -1px #000, 1px 1px #000;
+        animation: pulse 2s 1;
+        position: relative;
+      }
+      @keyframes pulse {
+        0% {
+          opacity: 0;
+        }
+        100%  {
+          opacity: 1;
+        }
+      }
+      .flag {
+        position: absolute;
+        width: auto;
+        height: .75em;
+        top: .5em;
+        right: .5em;
+      }
+      .label {
+        animation: type 2s steps(50, end) 1;
+        white-space: nowrap;
+        overflow: hidden;
+        margin-top: 1em;
+        width: 100%;
+      }
+      @keyframes type {
+        from {
+          width: 0;
+        }
+      }
+      #info {
+        position: absolute;
+        color: white;
+        font-size: .5em;
+        text-shadow: 0 0 3px #000, -1px -1px #000, 1px 1px #000;
+        bottom: 1em;
+        right: 1em;
+      }
+      #logo {
+        width: 3em;
+        height: auto;
+        vertical-align: middle;
+      }
+      .settings {
+        font-weight: .3em;
+      }
+    </style>
+  </head>
+  <body>
+    <section id="tiles-container"></section>
+    <section id="info">
+      <img id="logo" src="./static/wikipedia.svg">
+      Wikipedia Screensaver
+      <input type="checkbox" checked id="sound"><label class="settings" for="sound">🔊Sound</label>
+      <input type="checkbox" id="fullscreen"><label class="settings" for="fullscreen">💢Fullscreen</label>
+    </section>
+    <script>
+      (function() {
+        var SSE_URL = 'https://wikipedia-edits.herokuapp.com/sse';
+
+        var tilesContainer = document.querySelector('#tiles-container');
+        var soundCheckbox = document.querySelector('#sound');
+        var fullscreenCheckbox = document.querySelector('#fullscreen');
+        fullscreenCheckbox.addEventListener('change', function() {
+          if (fullscreenCheckbox.checked) {
+            document.body.webkitRequestFullscreen();
+          } else {
+            document.webkitExitFullscreen();
+          }
+        });
+
+        var voices = {};
+
+        var isEmpty = function(obj) {
+          return Object.keys(obj).length === 0 &&
+              JSON.stringify(obj) === JSON.stringify({});
+        };
+
+        var getVoices = function(opt_googleOnlyVoices) {
+          var localVoices = {};
+          speechSynthesis.getVoices().filter(function(voice) {
+            return opt_googleOnlyVoices ? /^Google/.test(voice.name) : true;
+          }).map(function(voice) {
+            localVoices[voice.lang.substr(0, 2)] = voice;
+          });
+          return localVoices;
+        };
+
+        var parseArticle = function(e) {
+          var data = JSON.parse(e.data);
+          var language = data.language;
+          var voice = voices && voices[language] || false;
+          if (voice) {
+            data.article = data.article.replace(/_/g, ' ');
+            hooks.forEach(function(hook) {
+              hook(data, voice);
+            });
+          }
+        };
+
+        var logArticle = function(data, lang) {
+          console.log(`(${lang}) ${data.article}`);
+        };
+
+        var speakArticle = function(data, voice) {
+          setTimeout(function() {
+            if (!speechSynthesis.speaking && !speechSynthesis.pending) {
+              var utterance = new SpeechSynthesisUtterance();
+              utterance.addEventListener('start', function() {
+                displayArticle(data, voice.lang);
+              });
+              utterance.text = data.article;
+              utterance.voice = voice;
+              if (!sound.checked) {
+                utterance.volume = 0;
+              } else {
+                utterance.volume = 100;
+              }
+              speechSynthesis.speak(utterance);
+            }
+          }, 0);
+        };
+
+        var displayArticle = function(data, lang) {
+          var div = document.createElement('div');
+          div.className = 'tile';
+          var delta = Math.abs(parseInt(data.delta, 10)) % 255;
+          div.style.backgroundColor = `rgb(${Math.floor(Math.random() * 255)},${Math.floor(Math.random() * 255)},${Math.floor(Math.random() * 255)})`;
+          var img = document.createElement('img');
+          img.src = `./static/${lang.split('-')[0]}.svg`;
+          img.className = 'flag';
+          div.appendChild(img);
+          var span = document.createElement('div');
+          span.className = 'label';
+          span.textContent = `${data.article}`;
+          div.appendChild(span);
+          if (tilesContainer.children.length > 3) {
+            tilesContainer.firstChild.remove();
+          }
+          tilesContainer.insertBefore(div, tilesContainer.children.item(Math.floor(Math.random() * 3)));
+        };
+
+        var hooks = [
+          speakArticle
+        ];
+
+        var init = function() {
+          var source = new EventSource(SSE_URL);
+          source.addEventListener('message', parseArticle);
+          voices = getVoices(true);
+          if (isEmpty(voices)) {
+            voices = getVoices(false);
+          }
+          speechSynthesis.onvoiceschanged  = function() {
+            voices = getVoices(true);
+            if (isEmpty(voices)) {
+              voices = getVoices(false);
+            }
+          };
+        };
+        init();
+      })();
+    </script>
+  </body>
+</html>
