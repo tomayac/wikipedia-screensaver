@@ -8,7 +8,7 @@
     "autoprefixer": "mkdir -p dist/css && postcss -u autoprefixer -r dist/css/*",
     "node-sass": "mkdir -p dist/css && node-sass --output-style compressed -o dist/css src/css/*.css",
     "lint": "eslint src/js",
-    "babelify": "mkdir -p dist/js && babel --presets es2015 -d dist/temp src/js",
+    "babelify": "mkdir -p dist/js && babel --presets es2015 -d dist/temp src/js && babel --presets es2015 -d dist/temp src/vendor",
     "uglify": "mkdir -p dist/js && uglifyjs dist/temp/*.js -m -o dist/js/app.js && uglifyjs dist/temp/*.js -m -c -o dist/js/app.js",
     "imagemin": "mkdir -p dist/img && imagemin src/img dist/img -p && svgo -f dist/img",
     "minify-html": "html-minifier --collapse-boolean-attributes --collapse-inline-tag-whitespace --collapse-whitespace index.html -o dist/index.html",

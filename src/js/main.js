@@ -23,8 +23,8 @@
    * @param {Object} o An object
    * @returns {Boolean} Whether o is an empty object or not
    */
-  const isEmpty = o => Object.keys(o).length === 0 && JSON.stringify(o) ===
-      JSON.stringify({});
+  const isEmpty = o => Object.keys(o).length === 0 &&
+      JSON.stringify(o) === JSON.stringify({});
 
   /**
    * Get the speech synthesis voices, prefer Google's high-quality ones in
@@ -33,7 +33,7 @@
    * @returns {Object} The supported speech synthesis voices
    */
   const getVoices = opt_googleOnlyVoices => {
-    let localVoices = {};
+    const localVoices = {};
     speechSynthesis.getVoices().filter(voice => {
       return opt_googleOnlyVoices ? /^Google/.test(voice.name) : true;
     }).map(voice => {
@@ -49,9 +49,9 @@
    * @returns {undefined}
    */
   const parseArticle = e => {
-    let data = JSON.parse(e.data);
-    let language = data.language;
-    let voice = voices && voices[language] || false;
+    const data = JSON.parse(e.data);
+    const language = data.language;
+    const voice = voices && voices[language] || false;
     if (voice) {
       data.article = data.article.replace(/_/g, ' ');
       hooks.forEach(hook => hook(data, voice));
@@ -69,13 +69,15 @@
   const speakArticle = (data, voice) => {
     setTimeout(() => {
       if (!speechSynthesis.speaking && !speechSynthesis.pending) {
-        let utterance = new SpeechSynthesisUtterance();
+        const utterance = new SpeechSynthesisUtterance();
         // When the speech event starts, display the corresponding article
         utterance.addEventListener('start', () => {
           displayArticle(data, voice.lang);
         });
         utterance.text = data.article;
-        utterance.voice = voice;
+        if (voice) {
+          utterance.voice = voice;
+        }
         if (!soundCheckbox.checked) {
           utterance.volume = 0;
         } else {
@@ -95,17 +97,17 @@
   const displayArticle = (data, lang) => {
     const floor = Math.floor;
     const random = Math.random;
-    let div = html('div');
+    const div = html('div');
     div.className = 'tile';
     div.style.backgroundColor = `rgb(
         ${floor(random() * 255)},
         ${floor(random() * 255)},
         ${floor(random() * 255)})`.replace(/\n/g, '').replace(/\s/g, '');
-    let img = html('img');
+    const img = html('img');
     img.src = `img/${lang.split('-')[0]}.svg`;
     img.className = 'flag';
     div.appendChild(img);
-    let span = html('div');
+    const span = html('div');
     span.className = 'label';
     span.textContent = `${data.article}`;
     div.appendChild(span);
@@ -128,21 +130,42 @@
 
   (() => {
     // Toggles fullscreen
-    fullscreenCheckbox.addEventListener('change', () => {
-      if (fullscreenCheckbox.checked) {
-        doc.body.webkitRequestFullscreen();
-      } else {
-        doc.webkitExitFullscreen();
-      }
-    });
-
+    if (doc.fullscreenEnabled) {
+      fullscreenCheckbox.addEventListener('change', () => {
+        if (fullscreenCheckbox.checked) {
+          doc.body.requestFullscreen();
+        } else {
+          doc.exitFullscreen();
+        }
+      });
+    } else {
+      fullscreenCheckbox.remove();
+      $('label[for="fullscreen"]').remove();
+    }
+    // Start listening to SSE events
     let source = new EventSource(SSE_URL);
     source.addEventListener('message', parseArticle);
+    // On some platforms speech synthesis events need initial user interaction
+    soundCheckbox.addEventListener('click', () => {
+      const utterance = new SpeechSynthesisUtterance('Click');
+      speechSynthesis.speak(utterance);
+      voices = getVoices(true);
+      if (isEmpty(voices)) {
+        voices = getVoices(false);
+      }
+      speechSynthesis.onvoiceschanged = () => {
+        voices = getVoices(true);
+        if (isEmpty(voices)) {
+          voices = getVoices(false);
+        }
+      };
+    });
+    // Get all voices
     voices = getVoices(true);
     if (isEmpty(voices)) {
       voices = getVoices(false);
     }
-    speechSynthesis.onvoiceschanged  = () => {
+    speechSynthesis.onvoiceschanged = () => {
       voices = getVoices(true);
       if (isEmpty(voices)) {
         voices = getVoices(false);
