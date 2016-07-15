@@ -1,8 +1,8 @@
-((doc, $, html) => {
+((doc, $, html, io) => {
   'use strict';
 
-  // The Server-Sent Event source
-  const SSE_URL = 'https://wikipedia-edits.herokuapp.com/sse';
+  // The Web Socket source (need to force the port)
+  const WEB_SOCKET_URL = 'https://stream.wikimedia.org:443/rc';
 
   // The number of tiles to display
   const TILES = 9;
@@ -45,16 +45,19 @@
   /**
    * Parse the article and its language, for supported languages carry on with
    * hooks (allows for adding additional functions than just reading).
-   * @param {Object} e The SSE data object
+   * @param {Object} data The Web Socket data object
    * @returns {undefined}
    */
-  const parseArticle = e => {
-    const data = JSON.parse(e.data);
-    const language = data.language;
-    const voice = voices && voices[language] || false;
-    if (voice) {
-      data.article = data.article.replace(/_/g, ' ');
-      hooks.forEach(hook => hook(data, voice));
+  const parseArticle = data => {
+    const language = data.wiki.replace('wiki', '');
+    data.language = language;
+    const voice = voices[language] || false;
+    if (!isEmpty(voices)) {
+      if (voice) {
+        hooks.forEach(hook => hook(data, voice));
+      }
+    } else {
+      displayArticle(data, language);
     }
   };
 
@@ -62,7 +65,7 @@
    * Reads out the currently edited article if no other speech event is live or
    * pending (Wikipedia edits happen too fast, stacking speech events would not
    * scale).
-   * @param {Object} data The SSE data object
+   * @param {Object} data The Web Socket data object
    * @param {Object} voice The speech synthesis voice
    * @returns {undefined}
    */
@@ -74,7 +77,7 @@
         utterance.addEventListener('start', () => {
           displayArticle(data, voice.lang);
         });
-        utterance.text = data.article;
+        utterance.text = data.title;
         if (voice) {
           utterance.voice = voice;
         }
@@ -90,8 +93,8 @@
 
   /**
    * Displays the currently edited article.
-   * @param {Object} data The SSE data object
-   * @param {String} lang The languag of the article
+   * @param {Object} data The Web Socket data object
+   * @param {String} lang The language of the article
    * @returns {undefined}
    */
   const displayArticle = (data, lang) => {
@@ -107,10 +110,12 @@
     img.src = `img/${lang.split('-')[0]}.svg`;
     img.className = 'flag';
     div.appendChild(img);
-    const span = html('div');
-    span.className = 'label';
-    span.textContent = `${data.article}`;
-    div.appendChild(span);
+    const a = html('a');
+    a.className = 'label';
+    a.textContent = `${data.title}`;
+    a.href = `${data.server_url}/wiki/${data.title.replace(/ /g, '_')}`;
+    a.target = '_blank';
+    div.appendChild(a);
     // Remove the first tile if there would be more than TILES
     if (tilesContainer.children.length > TILES - 1) {
       tilesContainer.firstChild.remove();
@@ -142,9 +147,18 @@
       fullscreenCheckbox.remove();
       $('label[for="fullscreen"]').remove();
     }
-    // Start listening to SSE events
-    let source = new EventSource(SSE_URL);
-    source.addEventListener('message', parseArticle);
+    // Start listening to Web Socket events
+    const socket = io.connect(WEB_SOCKET_URL);
+    socket.on('connect', () => {
+      socket.emit('subscribe', '*');
+    });
+    socket.on('change', e => {
+      if (e.type === 'edit' && e.bot === false &&
+          e.namespace === 0 && e.wiki !== 'wikidatawiki') {
+        parseArticle(e);
+      }
+    });
+
     // On some platforms speech synthesis events need initial user interaction
     soundCheckbox.addEventListener('click', () => {
       const utterance = new SpeechSynthesisUtterance('Click');
@@ -160,6 +174,7 @@
         }
       };
     });
+
     // Get all voices
     voices = getVoices(true);
     if (isEmpty(voices)) {
@@ -173,4 +188,4 @@
     };
   })();
 })(document, document.querySelector.bind(document),
-    document.createElement.bind(document));
+    document.createElement.bind(document), window.io);
