@@ -1,6 +1,6 @@
 {
   "name": "wikipedia-screensaver",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Wikipedia screensaver that displays and reads out the currently edited Wikipedia articles.",
   "main": "main.js",
   "scripts": {
@@ -46,5 +46,9 @@
     "postcss-cli": "^2.5.1",
     "svgo": "^0.6.4",
     "uglify-js": "^2.6.2"
+  },
+  "engines": {
+    "node": ">=4.8.x",
+    "npm": ">=2.15.x"
   }
 }
