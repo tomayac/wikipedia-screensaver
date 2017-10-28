@@ -1,8 +1,8 @@
-((doc, $, html, io) => {
+((doc, $, html) => {
   'use strict';
 
-  // The Web Socket source (need to force the port)
-  const WEB_SOCKET_URL = 'https://stream.wikimedia.org:443/rc';
+  // The Server-Sent Event Source
+  const SSE_URL = 'https://stream.wikimedia.org/v2/stream/recentchange';
 
   // The number of tiles to display
   const TILES = 9;
@@ -147,17 +147,16 @@
       fullscreenCheckbox.remove();
       $('label[for="fullscreen"]').remove();
     }
-    // Start listening to Web Socket events
-    const socket = io.connect(WEB_SOCKET_URL);
-    socket.on('connect', () => {
-      socket.emit('subscribe', '*');
-    });
-    socket.on('change', e => {
-      if (e.type === 'edit' && e.bot === false &&
-          e.namespace === 0 && e.wiki !== 'wikidatawiki') {
-        parseArticle(e);
+
+    // Start listening to Server-Sent Events
+    const eventSource = new EventSource(SSE_URL);
+    eventSource.onmessage = e => {
+      const data = JSON.parse(e.data);
+      if (data.type === 'edit' && !data.bot &&
+          data.namespace === 0 && data.wiki !== 'wikidatawiki') {
+        parseArticle(data);
       }
-    });
+    };
 
     // On some platforms speech synthesis events need initial user interaction
     soundCheckbox.addEventListener('click', () => {
@@ -188,4 +187,4 @@
     };
   })();
 })(document, document.querySelector.bind(document),
-    document.createElement.bind(document), window.io);
+    document.createElement.bind(document));
