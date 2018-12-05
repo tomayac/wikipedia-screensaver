@@ -160,7 +160,8 @@
 
     // On all platforms speech synthesis events need initial user interaction
     soundCheckbox.addEventListener('click', () => {
-      const utterance = new SpeechSynthesisUtterance('Click');
+      const utterance = new SpeechSynthesisUtterance(soundCheckbox.checked
+          ? 'Sound on' : 'Sound off');
       speechSynthesis.speak(utterance);
       voices = getVoices(true);
       if (isEmpty(voices)) {
