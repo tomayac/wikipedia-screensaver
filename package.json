@@ -7,7 +7,7 @@
     "clean": "rm -r -f dist/*",
     "autoprefixer": "mkdir -p dist/css && postcss -u autoprefixer -r dist/css/*",
     "node-sass": "mkdir -p dist/css && node-sass --output-style compressed -o dist/css src/css/*.css",
-    "lint": "eslint src/js",
+    "lint": "eslint src/js --fix",
     "babelify": "mkdir -p dist/js && babel --presets es2015 -d dist/temp src/js && babel --presets es2015 -d dist/temp src/vendor",
     "uglify": "mkdir -p dist/js && uglifyjs dist/temp/*.js -m -o dist/js/app.js && uglifyjs dist/temp/*.js -m -c -o dist/js/app.js",
     "imagemin": "mkdir -p dist/img && imagemin src/img/* --out-dir=dist/img && svgo -f dist/img",
@@ -20,7 +20,8 @@
     "build:all": "npm run clean && npm run build:css && npm run build:js && npm run build:img && npm run build:html",
     "watch:css": "onchange 'src/css/*.css' -- npm run build:css",
     "watch:js": "onchange 'src/js/*.js' -- npm run build:js",
-    "watch:all": "npm-run-all -p serve watch:css watch:js",
+    "watch:html": "onchange 'index.html' -- npm run build:html",
+    "watch:all": "npm-run-all -p serve watch:css watch:js watch:html",
     "postinstall": "npm run build:all && npm run watch:all"
   },
   "repository": {
@@ -34,25 +35,25 @@
   },
   "homepage": "https://github.com/tomayac/wikipedia-screensaver#readme",
   "devDependencies": {
-    "autoprefixer": "^7.1.6",
+    "autoprefixer": "^9.4.2",
     "babel-cli": "^6.26.0",
     "babel-preset-es2015": "^6.24.1",
-    "browser-sync": "^2.18.13",
-    "eslint": "^4.10.0",
-    "html-minifier": "^3.5.6",
-    "imagemin-cli": "^3.0.0",
-    "npm-run-all": "^4.1.1",
-    "onchange": "^3.2.1",
-    "postcss-cli": "^4.1.1",
-    "svgo": "^0.7.2",
-    "uglify-js": "^3.1.5"
+    "browser-sync": "^2.26.3",
+    "eslint": "^5.9.0",
+    "html-minifier": "^3.5.21",
+    "imagemin-cli": "^4.0.0",
+    "npm-run-all": "^4.1.5",
+    "onchange": "^5.1.3",
+    "postcss-cli": "^6.0.1",
+    "svgo": "^1.1.1",
+    "uglify-js": "^3.4.9"
   },
   "engines": {
     "node": ">=4.8.x",
     "npm": ">=2.15.x"
   },
   "dependencies": {
-    "imagemin": "^5.3.1",
-    "node-sass": "^4.5.3"
+    "imagemin": "^6.0.0",
+    "node-sass": "^4.10.0"
   }
 }

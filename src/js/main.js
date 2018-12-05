@@ -1,4 +1,4 @@
-((doc, $, html) => {
+((doc, nav, $, html) => {
   'use strict';
 
   // The Server-Sent Event Source
@@ -23,7 +23,7 @@
    * @param {Object} o An object
    * @returns {Boolean} Whether o is an empty object or not
    */
-  const isEmpty = o => Object.keys(o).length === 0 &&
+  const isEmpty = (o) => Object.keys(o).length === 0 &&
       JSON.stringify(o) === JSON.stringify({});
 
   /**
@@ -32,11 +32,11 @@
    * @param {Boolean=} opt_googleOnlyVoices Whether to only use Google voices
    * @returns {Object} The supported speech synthesis voices
    */
-  const getVoices = opt_googleOnlyVoices => {
+  const getVoices = (opt_googleOnlyVoices) => {
     const localVoices = {};
-    speechSynthesis.getVoices().filter(voice => {
+    speechSynthesis.getVoices().filter((voice) => {
       return opt_googleOnlyVoices ? /^Google/.test(voice.name) : true;
-    }).map(voice => {
+    }).map((voice) => {
       localVoices[voice.lang.substr(0, 2)] = voice;
     });
     return localVoices;
@@ -48,13 +48,13 @@
    * @param {Object} data The Web Socket data object
    * @returns {undefined}
    */
-  const parseArticle = data => {
+  const parseArticle = (data) => {
     const language = data.wiki.replace('wiki', '');
     data.language = language;
     const voice = voices[language] || false;
     if (!isEmpty(voices)) {
       if (voice) {
-        hooks.forEach(hook => hook(data, voice));
+        hooks.forEach((hook) => hook(data, voice));
       }
     } else {
       displayArticle(data, language);
@@ -150,7 +150,7 @@
 
     // Start listening to Server-Sent Events
     const eventSource = new EventSource(SSE_URL);
-    eventSource.onmessage = e => {
+    eventSource.onmessage = (e) => {
       const data = JSON.parse(e.data);
       if (data.type === 'edit' && !data.bot &&
           data.namespace === 0 && data.wiki !== 'wikidatawiki') {
@@ -158,7 +158,7 @@
       }
     };
 
-    // On some platforms speech synthesis events need initial user interaction
+    // On all platforms speech synthesis events need initial user interaction
     soundCheckbox.addEventListener('click', () => {
       const utterance = new SpeechSynthesisUtterance('Click');
       speechSynthesis.speak(utterance);
@@ -174,17 +174,31 @@
       };
     });
 
-    // Get all voices
-    voices = getVoices(true);
-    if (isEmpty(voices)) {
-      voices = getVoices(false);
+    if ('getWakeLock' in nav) {
+      const wakeLockCheckbox = $('#keep-awake');
+      wakeLockCheckbox.style.display = 'block';
+      wakeLockCheckbox.labels[0].style.display = 'block';
+      let wakeLockObj = null;
+      nav.getWakeLock('screen').then((wlObj) => {
+        wakeLockObj = wlObj;
+      }).catch((err) => {
+        return console.error('Could not obtain wake lock', err);
+      });
+      let wakeLockRequest = null;
+      const toggleWakeLock = () => {
+        if (wakeLockRequest) {
+          wakeLockRequest.cancel();
+          wakeLockRequest = null;
+          return;
+        }
+        wakeLockRequest = wakeLockObj.createRequest();
+      };
+      wakeLockCheckbox.addEventListener('click', () => {
+        toggleWakeLock();
+        return console.log(
+            `Wake lock is ${wakeLockObj.active ? 'active' : 'not active'}`);
+      });
     }
-    speechSynthesis.onvoiceschanged = () => {
-      voices = getVoices(true);
-      if (isEmpty(voices)) {
-        voices = getVoices(false);
-      }
-    };
   })();
-})(document, document.querySelector.bind(document),
+})(document, navigator, document.querySelector.bind(document),
     document.createElement.bind(document));

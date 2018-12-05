@@ -11,7 +11,7 @@ module.exports = {
         "arrow-body-style": 0,
         "arrow-parens": [
             2,
-            "as-needed"
+            "always"
         ],
         "arrow-spacing": [
             2,
@@ -85,7 +85,7 @@ module.exports = {
         "new-parens": 2,
         "newline-after-var": 0,
         "newline-per-chained-call": 0,
-        "no-console": 1,
+        "no-console": 0,
         "no-alert": 2,
         "no-array-constructor": 2,
         "no-bitwise": 2,

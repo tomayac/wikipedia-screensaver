@@ -8,6 +8,7 @@ html {
 body {
   margin: 0;
   font-size: 1em;
+  overflow: hidden;
 }
 @media (min-width: 600px) {
   body {
@@ -66,12 +67,18 @@ body {
   text-shadow: 0 0 3px #000, -1px -1px #000, 1px 1px #000;
   bottom: 1em;
   right: 1em;
+  display: flex;
 }
 #logo {
   width: 3em;
-  height: auto;
-  vertical-align: middle;
+  height: 3em;
 }
 .settings {
   font-weight: .3em;
+}
+#keep-awake {
+  display: none;
+}
+label[for="keep-awake"] {
+  display: none;
 }
