@@ -1,4 +1,4 @@
-((doc, nav, $, html) => {
+((doc, win, nav, $, html) => {
   'use strict';
 
   // The Server-Sent Event Source
@@ -199,7 +199,36 @@
       }).catch((err) => {
         return console.error('Could not obtain wake lock', err);
       });
+    } else if ('WakeLock' in win) {
+      const wakeLockCheckbox = $('#keep-awake');
+      wakeLockCheckbox.style.display = 'block';
+      wakeLockCheckbox.labels[0].style.display = 'block';
+
+      let controller = new AbortController();
+      const requestWakeLock = () => {
+        controller = new AbortController();
+        const signal = controller.signal;
+        win.WakeLock.request('screen', {signal}).
+        catch((e) => {
+          if (e.name === 'AbortError') {
+            console.log('Wake Lock was aborted');
+          } else {
+            console.error(e.name, e.message);
+          }
+          wakeLockCheckbox.checked = false;
+          return;
+        });
+        console.log('Wake Lock is active');
+        wakeLockCheckbox.checked = true;
+      };
+
+      wakeLockCheckbox.addEventListener('click', () => {
+        if (wakeLockCheckbox.checked) {
+          return requestWakeLock();
+        }
+        return controller.abort();
+      });
     }
   })();
-})(document, navigator, document.querySelector.bind(document),
+})(document, window, navigator, document.querySelector.bind(document),
     document.createElement.bind(document));
