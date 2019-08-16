@@ -27,15 +27,16 @@
       JSON.stringify(o) === JSON.stringify({});
 
   /**
-   * Get the speech synthesis voices, prefer Google's high-quality ones in
+   * Get the speech synthesis voices, prefer vendor's high-quality ones in
    * supported browsers.
-   * @param {Boolean=} opt_googleOnlyVoices Whether to only use Google voices
+   * @param {Boolean=} opt_vendorOnlyVoices Whether to only use vendor voices
    * @returns {Object} The supported speech synthesis voices
    */
-  const getVoices = (opt_googleOnlyVoices) => {
+  const getVoices = (opt_vendorOnlyVoices) => {
     const localVoices = {};
     speechSynthesis.getVoices().filter((voice) => {
-      return opt_googleOnlyVoices ? /^Google/.test(voice.name) : true;
+      return opt_vendorOnlyVoices
+          ? /^(Google|Microsoft)/.test(voice.name) : true;
     }).map((voice) => {
       localVoices[voice.lang.substr(0, 2)] = voice;
     });
@@ -107,6 +108,8 @@
         ${floor(random() * 255)},
         ${floor(random() * 255)})`.replace(/\n/g, '').replace(/\s/g, '');
     const img = html('img');
+    // eslint-disable-next-line no-return-assign
+    img.onerror = () => img.src = 'img/neutral.png';
     img.src = `img/${lang.split('-')[0]}.svg`;
     img.className = 'flag';
     div.appendChild(img);
