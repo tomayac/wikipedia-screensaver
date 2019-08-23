@@ -12,6 +12,25 @@
   const soundCheckbox = $('#sound');
   const fullscreenCheckbox = $('#fullscreen');
 
+  // Be less flashy if reduced motion is preferred
+  const understandsPrefersReducedMotionMediaQuery =
+      win.matchMedia('(prefers-reduced-motion)').media !== 'not all';
+  let prefersReducedMotion = false;
+  if (understandsPrefersReducedMotionMediaQuery) {
+    const prefersReducedMotionMediaQuery =
+        win.matchMedia('(prefers-reduced-motion: reduce)');
+    prefersReducedMotion = prefersReducedMotionMediaQuery.matches;
+    const prefersReducedMotionChanged = () => {
+      prefersReducedMotion = prefersReducedMotionMediaQuery.matches;
+      if (prefersReducedMotion) {
+        tilesContainer.style.display = 'block';
+      } else {
+        tilesContainer.style.display = 'flex';
+      }
+    };
+    prefersReducedMotionChanged();
+    prefersReducedMotionMediaQuery.addListener(prefersReducedMotionChanged);
+  }
   // Holds references to all relevant speech synthesis voices
   let voices = {};
 
@@ -99,14 +118,15 @@
    * @returns {undefined}
    */
   const displayArticle = (data, lang) => {
-    const floor = Math.floor;
-    const random = Math.random;
     const div = html('div');
     div.className = 'tile';
-    div.style.backgroundColor = `rgb(
-        ${floor(random() * 255)},
-        ${floor(random() * 255)},
-        ${floor(random() * 255)})`.replace(/\n/g, '').replace(/\s/g, '');
+    if (prefersReducedMotion) {
+      div.style.backgroundColor = '#eee';
+    } else {
+      div.style.backgroundColor =
+          // eslint-disable-next-line no-bitwise
+          `#${(~~(Math.random() * (1 << 24))).toString(16)}`;
+    }
     const img = html('img');
     // eslint-disable-next-line no-return-assign
     img.onerror = () => img.src = 'img/neutral.png';
@@ -123,12 +143,17 @@
     if (tilesContainer.children.length > TILES - 1) {
       tilesContainer.firstChild.remove();
     }
-    let position = Math.floor(Math.random() * (TILES - 1));
-    if (position === lastPosition) {
-      position = (position + 1) % TILES;
+    let position = null;
+    if (prefersReducedMotion) {
+      tilesContainer.appendChild(div);
+    } else {
+      position = Math.floor(Math.random() * (TILES - 1));
+      if (position === lastPosition) {
+        position = (position + 1) % TILES;
+      }
+      tilesContainer.insertBefore(div, tilesContainer.children.item(position));
+      lastPosition = position;
     }
-    lastPosition = position;
-    tilesContainer.insertBefore(div, tilesContainer.children.item(position));
   };
 
   // The hooks for actions to take
