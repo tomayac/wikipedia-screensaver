@@ -11,26 +11,43 @@
   const tilesContainer = $('#tiles-container');
   const soundCheckbox = $('#sound');
   const fullscreenCheckbox = $('#fullscreen');
+  const reducedMotionCheckbox = $('#reduced-motion');
 
-  // Be less flashy if reduced motion is preferred
-  const understandsPrefersReducedMotionMediaQuery =
-      win.matchMedia('(prefers-reduced-motion)').media !== 'not all';
+  // Be less flashy if reduced motion is preferred. The checkbox follows the
+  // system preference until the user overrides it, then the override sticks.
+  const REDUCED_MOTION_KEY = 'reduced-motion';
+  const prefersReducedMotionMediaQuery =
+      win.matchMedia('(prefers-reduced-motion: reduce)');
   let prefersReducedMotion = false;
-  if (understandsPrefersReducedMotionMediaQuery) {
-    const prefersReducedMotionMediaQuery =
-        win.matchMedia('(prefers-reduced-motion: reduce)');
-    prefersReducedMotion = prefersReducedMotionMediaQuery.matches;
-    const prefersReducedMotionChanged = () => {
-      prefersReducedMotion = prefersReducedMotionMediaQuery.matches;
-      if (prefersReducedMotion) {
-        tilesContainer.style.display = 'block';
-      } else {
-        tilesContainer.style.display = 'flex';
-      }
-    };
-    prefersReducedMotionChanged();
-    prefersReducedMotionMediaQuery.addListener(prefersReducedMotionChanged);
+  let storedReducedMotion = null;
+  try {
+    storedReducedMotion = localStorage.getItem(REDUCED_MOTION_KEY);
+  } catch (err) {
+    // Storage may be unavailable, fall back to the system preference
   }
+  const applyReducedMotion = () => {
+    prefersReducedMotion = reducedMotionCheckbox.checked;
+    tilesContainer.style.display = prefersReducedMotion ? 'block' : 'flex';
+  };
+  reducedMotionCheckbox.checked = storedReducedMotion === null
+      ? prefersReducedMotionMediaQuery.matches
+      : storedReducedMotion === 'true';
+  applyReducedMotion();
+  prefersReducedMotionMediaQuery.addListener(() => {
+    if (storedReducedMotion === null) {
+      reducedMotionCheckbox.checked = prefersReducedMotionMediaQuery.matches;
+      applyReducedMotion();
+    }
+  });
+  reducedMotionCheckbox.addEventListener('change', () => {
+    storedReducedMotion = String(reducedMotionCheckbox.checked);
+    try {
+      localStorage.setItem(REDUCED_MOTION_KEY, storedReducedMotion);
+    } catch (err) {
+      // The choice then only lasts for this session
+    }
+    applyReducedMotion();
+  });
   // Holds references to all relevant speech synthesis voices
   let voices = {};
 
